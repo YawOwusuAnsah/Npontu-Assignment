@@ -1,0 +1,8 @@
+version: '3.4'
+
+services:
+  npontuassignment:
+    image: npontuassignment
+    build:
+      context: .
+      dockerfile: ./Dockerfile

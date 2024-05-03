@@ -1,0 +1,65 @@
+version: '3.4'
+
+services:
+  # Npontu PHP Assignment
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: sunandan/php
+    container_name: npontu-web
+    restart: unless-stopped
+    tty: true
+    environment:
+      - SERVICE_NAME: npontu-web
+      - SERVICE_TAGS: npontu-assignment
+    working_dir: /var/www/html
+    volumes:
+      - ./:/var/www/html
+      - ./php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    networks:
+      - npontuweb-network
+    
+  #Nginx Service
+  webserver:
+    image: nginx:alpine
+    container_name: nginx-webserver
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./:/var/www
+      - ./nginx/conf.d/:etc/nginx/conf.d/
+    networks:
+      - nginx-webserver-network
+    
+  #MySQL Server
+  db:
+    image: mysql:5.7.22
+    container_name: 127.0.0.1
+    restart: unless-stopped
+    tty: true
+    # ports:
+    #   -  "3306:3306"
+    environment:
+      MySQL_DATABASE: listing
+      MySQL_ROOT_PASSWORD: password
+      SERVICE_NAME: dev
+      SERVICE_TAGS: mysql
+    volumes:
+      - dbdata:/var/lib/mysql/
+      - ./mysql/my.cnf:/etc/mysql/my.cnf
+    networks:
+      - laravel-network
+  
+  #Docker Networks
+  networks:
+    laravel-network:
+      driver: bridge
+  #volumes
+  volumes:
+    dbdata:
+      driver: local
+

@@ -1,0 +1,80 @@
+---
+- name: Install php and Laravel
+  hosts: webserver
+  tasks: 
+    - name: Upadate apt repo and cache
+      apt: update_cache=yes force_apt_get=yes cache_valid_time=3600
+    - name: Install php packages
+      apt: 
+        pkg:
+          - php
+          - php-cli
+          - php-fpm
+          - php-mysql
+    - name: Install Nginx
+      apt:
+        name: nginx
+        state: present
+
+- name: Create new linux user for php app
+  hosts: webserver
+  tasks:
+    - name: Create linux user
+      user:
+        name: npontu
+        comment: Npontu Assignment
+        group: admin
+    - name: Does remote app root exists and has the right permissions
+      file:
+        path: "{{ home }}/{{ npontu }}"
+        state: directory
+        mode: "755"
+        owner: "{{ npontu }}"
+        group: "{{ admin }}"
+    - name: Coping or Synchronizing application files to the remote server
+      synchronize:
+        src: "./src"
+        dest: "{{ home }}"
+        rsync_opts:
+          - "--no-motd"
+          - "--exclude=.git"
+    - name: Additional directory premission for npontu-data user on storage forlder
+      acl:
+        path: "{{ home }}/{{ npontu }}/npontuDataStorage"
+        entry: group:npontu-data:rwx
+        recursive: yes
+        state: present
+    - name: Additional directory premission for npontu-data user on storage bootstrap/cache folder
+      acl:
+        path: "{{ home }}/{{ npontu }}/bootstrap/cache"
+        entry: group:npontu-data:rwx
+        recursive: yes
+        state: present
+    - name: Setting up .env file
+      template:
+        src: .env
+        dest: "{{ home }}/{{ npontu }}/.env"
+    - name: Installing Dependencies with Composer
+        composer:
+          command: install
+          working_dir: "{{ home }}/{{ npontu }}"
+        tags: ["composer:install"]
+    - name: Generating app key
+      command: "/usr/bin/php {{ home }}/{{ npontu }}/artisan key:generate"
+      tags: [ 'laravel', 'artisan:key' ]
+
+    - name: Set up app storage link
+      command: "/usr/bin/php {{ home }}/{{ npontu }}/artisan storage:link"
+      tags: [ 'laravel', 'artisan:storage' ]
+
+    - name: Run Migrations + Seeders
+      command: "/usr/bin/php {{ home }}/{{ npontu }}/artisan migrate --seed"
+      tags: [ 'laravel', 'artisan:migrate' ]
+        async: 1000
+        poll: 0
+      - name: Ensure application is running
+        shell: ps aux | grep php
+        register: app_status
+      - debug: msg={{app_status}}
+
+          

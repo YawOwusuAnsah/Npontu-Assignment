@@ -1,0 +1,10 @@
+[webserver]
+134.209.255.142
+134.209.237.158
+134.209.235.76
+134.209.204.56
+134.209.207.98
+
+[webserver:vars]
+ansible_ssh_private_key_file=~/.ssh/id_rsa
+ansible_user=daniel
